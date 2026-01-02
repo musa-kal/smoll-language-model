@@ -8,6 +8,8 @@ torch_seed = 1337
 
 # importing required modules
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 if type(torch_seed) == int:
     torch.manual_seed(torch_seed)
@@ -49,4 +51,8 @@ def get_batch(data, batch_size=batch_size):
     y = torch.stack([data[i+1 : i+context_size+1] for i in ix])
     return x, y
 
-print(get_batch(training_data))
+class BigramLanguageModel(nn.Module):
+    
+    def __init__(self, vocab_size):
+        super().__init__()
+        self.token_embedding_table = nn.Embedding(vocab_size, vocab_size)
