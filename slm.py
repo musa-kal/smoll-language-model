@@ -8,6 +8,7 @@ torch_seed = 1337
 
 # importing required modules
 import torch
+from torch.nn import functional as F
 
 if type(torch_seed) == int:
     torch.manual_seed(torch_seed)
@@ -21,6 +22,7 @@ with open(training_text_path) as f:
 
 # getting all the chars from within the text
 chars = sorted(set(text))
+vocab_size = len(chars)
 
 # maps to encode and decode text
 char_i_map = {c:i for i,c in enumerate(chars)}
@@ -43,10 +45,14 @@ num = int(len(data)*training_split)
 training_data = data[:num]
 testing_data = data[num:]
 
-def get_batch(data, batch_size=batch_size):
-    ix = torch.randint(len(data) - context_size, (batch_size,))
-    x = torch.stack([data[i : i+context_size] for i in ix])
-    y = torch.stack([data[i+1 : i+context_size+1] for i in ix])
-    return x, y
+from models import BigramLanguageModel
 
-print(get_batch(training_data))
+m = BigramLanguageModel(vocab_size)
+
+
+print(decode(m.generate(torch.zeros((1,1), dtype=torch.long), token_amount=100)[0].tolist()))
+
+
+m.fit(training_data, 32, 10000, 1e-3)
+
+print(decode(m.generate(torch.zeros((1,1), dtype=torch.long), token_amount=100)[0].tolist()))
