@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from utils import get_batch
+from utils import *
 from tqdm import tqdm
 
 
@@ -42,12 +42,22 @@ class BigramLanguageModel(nn.Module):
         return idx
 
     
-    def fit(self, training_data, batch_size, epoch, lr):
+    def fit(self, training_data, batch_size, epoch, lr, eval_interval=None, eval_iters=None, test_data=None):
 
         optimizer = torch.optim.AdamW(self.parameters(), lr=lr)
 
+        if test_data is not None:
+            eval_data = (training_data, test_data)
+        else:
+            eval_data = (training_data)
+
         print("training...")
         for step in tqdm(range(epoch)):
+
+            if eval_interval is not None and eval_iters is not None and step % eval_interval == 0:
+                out = estimate_loss(self, eval_data, eval_iters)
+                s = f"step {step+1}/{epoch}: train loss {out[0]:.4f}" + ("" if training_data is None else f" test loss {out[1]:.4f}")
+                tqdm.write(s)
 
             xb, yb = get_batch(training_data, batch_size=batch_size)
 
@@ -55,5 +65,3 @@ class BigramLanguageModel(nn.Module):
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             optimizer.step()
-
-            tqdm.write(f"step {step+1}/{epoch} | loss {loss.item()}")

@@ -1,14 +1,18 @@
+import torch
+from torch.nn import functional as F
+
 # ======== Model Params ========
 training_text_path = r'dataset\tinyshakespeare.txt'
 training_split = 0.85
 context_size = 10
 batch_size = 4
 torch_seed = 1337
+evaluate_iteration = 250
+evaluate_interval = 1000
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 # ==============================
 
 # importing required modules
-import torch
-from torch.nn import functional as F
 
 if type(torch_seed) == int:
     torch.manual_seed(torch_seed)
@@ -48,11 +52,11 @@ testing_data = data[num:]
 from models import BigramLanguageModel
 
 m = BigramLanguageModel(vocab_size)
+m = m.to(device)
 
 
-print(decode(m.generate(torch.zeros((1,1), dtype=torch.long), token_amount=100)[0].tolist()))
+# print(decode(m.generate(torch.zeros((1,1), dtype=torch.long), token_amount=100)[0].tolist()))
 
+# m.fit(training_data, 32, 10000, 1e-3, evaluate_interval, evaluate_iteration, testing_data)
 
-m.fit(training_data, 32, 10000, 1e-3)
-
-print(decode(m.generate(torch.zeros((1,1), dtype=torch.long), token_amount=100)[0].tolist()))
+# print(decode(m.generate(torch.zeros((1,1), dtype=torch.long), token_amount=100)[0].tolist()))
