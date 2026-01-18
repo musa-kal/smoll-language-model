@@ -70,7 +70,7 @@ class BigramLanguageModel(nn.Module):
             torch.Tensor: Generated token indices of shape (B, 1 + token_amount)
         """
 
-        for _ in range(token_amount):
+        for _ in tqdm(range(token_amount)):
 
             logits, loss = self(idx)
 
@@ -389,7 +389,7 @@ class TinyGPT(nn.Module):
             torch.Tensor: Generated token indices of shape (B, T + token_amount)
         """
 
-        for _ in range(token_amount):
+        for _ in tqdm(range(token_amount)):
 
             idx_context = idx[:, -self.context_size:] # at most context_size from each batch
 
