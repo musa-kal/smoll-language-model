@@ -136,7 +136,7 @@ class TransformerBlock(nn.Module):
 
 class nGramLanguageModel_V2(nn.Module):
 
-    def __init__(self, vocab_size, n_embed, context_size, device="cpu"):
+    def __init__(self, vocab_size, n_embed, context_size):
         super().__init__()
 
         self.token_embedding_table = nn.Embedding(vocab_size, n_embed)
@@ -147,14 +147,15 @@ class nGramLanguageModel_V2(nn.Module):
             TransformerBlock(4, vocab_size, n_embed, context_size),
         )
         self.lm_head = nn.Linear(n_embed, vocab_size)
-        self.device = device
         self.context_size = context_size
 
     def forward(self, idx, target=None):
         B, T = idx.shape
+        
+        device = idx.device
 
         token_embed = self.token_embedding_table(idx) # dimension (B, T, n_embed)
-        pos_embed = self.position_embedding_table(torch.arange(T, device=self.device)) # (T, C)
+        pos_embed = self.position_embedding_table(torch.arange(T, device=device)) # (T, C)
         x = token_embed + pos_embed
         x = self.tf_blocks(x)
         logits = self.lm_head(x)

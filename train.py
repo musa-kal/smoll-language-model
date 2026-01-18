@@ -4,7 +4,7 @@ from config import *
 
 # importing required modules
 
-print(f"=== Device Selected as {device} ===")
+print(f"=== Device Selected as [{device}] ===")
 
 if type(torch_seed) == int:
     torch.manual_seed(torch_seed)
@@ -43,11 +43,11 @@ testing_data = data[num:]
 
 from models import nGramLanguageModel_V2
 
-m = nGramLanguageModel_V2(vocab_size, n_embd, context_size, device)
+m = nGramLanguageModel_V2(vocab_size, n_embd, context_size)
 m = m.to(device)
 
-print(decode(m.generate(torch.zeros((1,1), dtype=torch.long), token_amount=100)[0].tolist()))
+print(decode(m.generate(torch.zeros((1,1), dtype=torch.long, device=device), token_amount=100)[0].tolist()))
 
 m.fit(training_data, batch_size, epoch, learning_rate, evaluate_interval, evaluate_iteration, testing_data)
 
-print(decode(m.generate(torch.zeros((1,1), dtype=torch.long), token_amount=100)[0].tolist()))
+print(decode(m.generate(torch.zeros((1,1), dtype=torch.long, device=device), token_amount=100)[0].tolist()))
