@@ -43,8 +43,10 @@ testing_data = data[num:]
 
 from models import nGramLanguageModel_V2
 
-m = nGramLanguageModel_V2(vocab_size, n_embd, context_size)
+m = nGramLanguageModel_V2(vocab_size, n_embed, context_size, head_num, layer_num, dropout)
 m = m.to(device)
+
+input_text = ""
 
 print(decode(m.generate(torch.zeros((1,1), dtype=torch.long, device=device), token_amount=100)[0].tolist()))
 

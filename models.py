@@ -69,13 +69,15 @@ class BigramLanguageModel(nn.Module):
 
 class AttentionHead(nn.Module):
 
-    def __init__(self, n_embed, head_size, context_size):
+    def __init__(self, n_embed, head_size, context_size, dropout):
         super().__init__()
 
         self.value = nn.Linear(n_embed, head_size, bias=False)
         self.key = nn.Linear(n_embed, head_size, bias=False)
         self.query = nn.Linear(n_embed, head_size, bias=False)
         self.register_buffer('tril', torch.tril(torch.ones(context_size, context_size)))
+        
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
 
@@ -86,6 +88,7 @@ class AttentionHead(nn.Module):
         wei = q @ k.transpose(-2, -1) * C ** -0.5 # B, T, C @ B, C, T -> B, T, T
         wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
         wei = F.softmax(wei, dim=-1)
+        wei = self.dropout(wei)
 
         out = wei @ self.value(x) # B, T, T @ B, T, C -> B, T, C
 
@@ -95,24 +98,26 @@ class AttentionHead(nn.Module):
 class MultiHeadAttention(nn.Module):
     """ Multiple heads of self attention """
 
-    def __init__(self, head_num, n_embed, head_size, context_size):
+    def __init__(self, head_num, n_embed, head_size, context_size, dropout):
         super().__init__()
-        self.heads = nn.ModuleList([AttentionHead(n_embed, head_size, context_size) for _ in range(head_num)])
+        self.heads = nn.ModuleList([AttentionHead(n_embed, head_size, context_size, dropout) for _ in range(head_num)])
         self.proj = nn.Linear(n_embed, n_embed)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         x = torch.cat([head(x) for head in self.heads], dim=-1)
-        return self.proj(x)
+        return self.dropout(self.proj(x))
     
 
 class FeedForward(nn.Module):
     
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, dropout):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(input_size, output_size),
             nn.ReLU(),
             nn.Linear(output_size, input_size),
+            nn.Dropout(dropout)
         )
 
     def forward(self, x):
@@ -122,30 +127,34 @@ class FeedForward(nn.Module):
 class TransformerBlock(nn.Module):
     """ A transformer block """
         
-    def __init__(self, head_num, vocab_size, n_embed, context_size):
+    def __init__(self, head_num, vocab_size, n_embed, context_size, dropout):
         super().__init__()
         self.head_size = n_embed // head_num
-        self.sa_head = MultiHeadAttention(head_num, n_embed, self.head_size, context_size)
-        self.f_fwd = FeedForward(n_embed, n_embed * 4)
+        self.sa_head = MultiHeadAttention(head_num, n_embed, self.head_size, context_size, dropout)
+        self.f_fwd = FeedForward(n_embed, n_embed * 4, dropout)
+        
+        # layer normalization for attentions head
+        self.ln1 = nn.LayerNorm(n_embed)
+        # layer normalization for feedforward layer
+        self.ln2 = nn.LayerNorm(n_embed)
 
     def forward(self, x):
-        x = x + self.sa_head(x) # applying multi head of self attention
-        x = x + self.f_fwd(x) # dimension (B, T, vocab_size)
+        x = x + self.sa_head(self.ln1(x)) # applying multi head of self attention
+        x = x + self.f_fwd(self.ln2(x)) # dimension (B, T, vocab_size)
         return x
 
 
 class nGramLanguageModel_V2(nn.Module):
 
-    def __init__(self, vocab_size, n_embed, context_size):
+    def __init__(self, vocab_size, n_embed, context_size, head_num, layer_num, dropout):
         super().__init__()
 
         self.token_embedding_table = nn.Embedding(vocab_size, n_embed)
         self.position_embedding_table = nn.Embedding(context_size, n_embed)
         self.tf_blocks = nn.Sequential(
-            TransformerBlock(4, vocab_size, n_embed, context_size),
-            TransformerBlock(4, vocab_size, n_embed, context_size),
-            TransformerBlock(4, vocab_size, n_embed, context_size),
+            *[TransformerBlock(head_num, vocab_size, n_embed, context_size, dropout) for _ in range(layer_num)]
         )
+        self.f_ln = nn.LayerNorm(n_embed)
         self.lm_head = nn.Linear(n_embed, vocab_size)
         self.context_size = context_size
 
@@ -157,8 +166,9 @@ class nGramLanguageModel_V2(nn.Module):
         token_embed = self.token_embedding_table(idx) # dimension (B, T, n_embed)
         pos_embed = self.position_embedding_table(torch.arange(T, device=device)) # (T, C)
         x = token_embed + pos_embed
-        x = self.tf_blocks(x)
-        logits = self.lm_head(x)
+        x = self.tf_blocks(x) # (B, T, C)
+        x = self.f_ln(x)
+        logits = self.lm_head(x) # (B, T, vocab_size)
 
         loss = None
 
