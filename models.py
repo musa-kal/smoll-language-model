@@ -80,7 +80,6 @@ class AttentionHead(nn.Module):
     def forward(self, x):
 
         B, T, C = x.shape
-
         k = self.key(x)
         q = self.query(x)
 
@@ -91,17 +90,62 @@ class AttentionHead(nn.Module):
         out = wei @ self.value(x) # B, T, T @ B, T, C -> B, T, C
 
         return out
+    
 
+class MultiHeadAttention(nn.Module):
+    """ Multiple heads of self attention """
+
+    def __init__(self, head_num, n_embed, head_size, context_size):
+        super().__init__()
+        self.heads = nn.ModuleList([AttentionHead(n_embed, head_size, context_size) for _ in range(head_num)])
+        self.proj = nn.Linear(n_embed, n_embed)
+
+    def forward(self, x):
+        x = torch.cat([head(x) for head in self.heads], dim=-1)
+        return self.proj(x)
+    
+
+class FeedForward(nn.Module):
+    
+    def __init__(self, input_size, output_size):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(input_size, output_size),
+            nn.ReLU(),
+            nn.Linear(output_size, input_size),
+        )
+
+    def forward(self, x):
+        return self.net(x)
+    
+
+class TransformerBlock(nn.Module):
+    """ A transformer block """
         
-class BigramLanguageModel_V2(nn.Module):
+    def __init__(self, head_num, vocab_size, n_embed, context_size):
+        super().__init__()
+        self.head_size = n_embed // head_num
+        self.sa_head = MultiHeadAttention(head_num, n_embed, self.head_size, context_size)
+        self.f_fwd = FeedForward(n_embed, n_embed * 4)
+
+    def forward(self, x):
+        x = x + self.sa_head(x) # applying multi head of self attention
+        x = x + self.f_fwd(x) # dimension (B, T, vocab_size)
+        return x
+
+
+class nGramLanguageModel_V2(nn.Module):
 
     def __init__(self, vocab_size, n_embed, context_size, device="cpu"):
         super().__init__()
 
-        # vocab_size x vocab_size matrix containing the probability of next token based on the previous token 
         self.token_embedding_table = nn.Embedding(vocab_size, n_embed)
         self.position_embedding_table = nn.Embedding(context_size, n_embed)
-        self.sa_head = AttentionHead(n_embed, n_embed, context_size)
+        self.tf_blocks = nn.Sequential(
+            TransformerBlock(4, vocab_size, n_embed, context_size),
+            TransformerBlock(4, vocab_size, n_embed, context_size),
+            TransformerBlock(4, vocab_size, n_embed, context_size),
+        )
         self.lm_head = nn.Linear(n_embed, vocab_size)
         self.device = device
         self.context_size = context_size
@@ -112,8 +156,8 @@ class BigramLanguageModel_V2(nn.Module):
         token_embed = self.token_embedding_table(idx) # dimension (B, T, n_embed)
         pos_embed = self.position_embedding_table(torch.arange(T, device=self.device)) # (T, C)
         x = token_embed + pos_embed
-        x = self.sa_head(x) # applying orn head of self attention
-        logits = self.lm_head(x) # dimension (B, T, vocab_size)
+        x = self.tf_blocks(x)
+        logits = self.lm_head(x)
 
         loss = None
 

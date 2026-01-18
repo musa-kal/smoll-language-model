@@ -39,9 +39,9 @@ num = int(len(data)*training_split)
 training_data = data[:num]
 testing_data = data[num:]
 
-from models import BigramLanguageModel_V2
+from models import nGramLanguageModel_V2
 
-m = BigramLanguageModel_V2(vocab_size, n_embd, context_size, device)
+m = nGramLanguageModel_V2(vocab_size, n_embd, context_size, device)
 m = m.to(device)
 
 print(decode(m.generate(torch.zeros((1,1), dtype=torch.long), token_amount=100)[0].tolist()))
