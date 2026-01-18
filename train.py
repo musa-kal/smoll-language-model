@@ -4,6 +4,8 @@ from config import *
 
 # importing required modules
 
+print(f"=== Device Selected as {device} ===")
+
 if type(torch_seed) == int:
     torch.manual_seed(torch_seed)
     print(f"=== torch seed seed to {torch_seed} ===")
