@@ -50,6 +50,10 @@ input_text = ""
 
 print(decode(m.generate(torch.zeros((1,1), dtype=torch.long, device=device), token_amount=100)[0].tolist()))
 
-m.fit(training_data, batch_size, epoch, learning_rate, evaluate_interval, evaluate_iteration, testing_data)
+m.train()
+m.fit(training_data, context_size, batch_size, epoch, learning_rate, evaluate_interval, evaluate_iteration, testing_data)
+
+torch.save(m.state_dict(), 'models/model_weights.pth')
+print("Model saved to model_weights.pth")
 
 print(decode(m.generate(torch.zeros((1,1), dtype=torch.long, device=device), token_amount=100)[0].tolist()))

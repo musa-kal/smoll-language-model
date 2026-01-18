@@ -71,26 +71,25 @@ class AttentionHead(nn.Module):
 
     def __init__(self, n_embed, head_size, context_size, dropout):
         super().__init__()
-
         self.value = nn.Linear(n_embed, head_size, bias=False)
         self.key = nn.Linear(n_embed, head_size, bias=False)
         self.query = nn.Linear(n_embed, head_size, bias=False)
         self.register_buffer('tril', torch.tril(torch.ones(context_size, context_size)))
-        
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-
         B, T, C = x.shape
-        k = self.key(x)
-        q = self.query(x)
+        k = self.key(x) # (B, T, head_size)
+        q = self.query(x) # (B, T, head_size)
 
-        wei = q @ k.transpose(-2, -1) * C ** -0.5 # B, T, C @ B, C, T -> B, T, T
+        head_size = k.shape[-1] # so i can scale the dot product by head size
+        wei = q @ k.transpose(-2, -1) * head_size ** -0.5 
+        
         wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
         wei = F.softmax(wei, dim=-1)
         wei = self.dropout(wei)
 
-        out = wei @ self.value(x) # B, T, T @ B, T, C -> B, T, C
+        out = wei @ self.value(x) 
 
         return out
     
@@ -198,7 +197,7 @@ class nGramLanguageModel_V2(nn.Module):
         return idx
 
     
-    def fit(self, training_data, batch_size, epoch, lr, eval_interval=None, eval_iters=None, test_data=None):
+    def fit(self, training_data, context_size, batch_size, epoch, lr, eval_interval=None, eval_iters=None, test_data=None):
 
         optimizer = torch.optim.AdamW(self.parameters(), lr=lr)
 
@@ -212,10 +211,10 @@ class nGramLanguageModel_V2(nn.Module):
 
             if eval_interval is not None and eval_iters is not None and step % eval_interval == 0:
                 out = estimate_loss(self, eval_data, eval_iters)
-                s = f"step {step+1}/{epoch}: train loss {out[0]:.4f}" + ("" if training_data is None else f" test loss {out[1]:.4f}")
+                s = f"step {step+1}/{epoch}: train loss {out[0]:.4f}" + ("" if training_data is None else f" | test loss {out[1]:.4f}")
                 tqdm.write(s)
 
-            xb, yb = get_batch(training_data, batch_size=batch_size)
+            xb, yb = get_batch(training_data, batch_size, context_size)
 
             logits, loss = self(xb, yb)
             optimizer.zero_grad(set_to_none=True)
