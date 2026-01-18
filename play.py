@@ -110,7 +110,7 @@ def generate_text(prompt_text, num_tokens):
         idx = torch.tensor(prompt_tokens, dtype=torch.long, device=device).unsqueeze(0)
         
         # Generate tokens
-        generated_idx = m.generate(idx, num_tokens)
+        generated_idx = m.generate(idx, num_tokens, silent=False)
         
         # Decode and return
         generated_text = decode(generated_idx[0].tolist())

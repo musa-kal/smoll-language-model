@@ -84,29 +84,24 @@ m = TinyGPT(vocab_size, n_embed, context_size, head_num, layer_num, dropout)
 m = m.to(device)
 
 # ============================================================================
-# STEP 6: SAMPLE GENERATION BEFORE TRAINING
-# ============================================================================
-
-# Generate 100 tokens from an untrained model to show random output
-print("\n--- Generated Text BEFORE Training (Random) ---")
-print(decode(m.generate(torch.zeros((1,1), dtype=torch.long, device=device), token_amount=100)[0].tolist()))
-
-# ============================================================================
-# STEP 7: TRAIN THE MODEL
+# STEP 6: TRAIN THE MODEL
 # ============================================================================
 
 m.train()
 m.fit(training_data, batch_size, epoch, learning_rate, evaluate_interval, evaluate_iteration, testing_data)
 
 # ============================================================================
-# STEP 8: SAVE MODEL WEIGHTS
+# STEP 7: SAVE MODEL WEIGHTS
 # ============================================================================
 
-torch.save(m.state_dict(), model_save_path)
-print(f"\n+++ Model saved to {model_save_path} +++")
+if (model_save_path is not None) and (model_save_path != ""):
+    torch.save(m.state_dict(), model_save_path)
+    print(f"\n+++ Model saved to {model_save_path} +++")
+else:
+    print("\n=== Model save path not provided, skipping save ===")
 
 # ============================================================================
-# STEP 9: SAMPLE GENERATION AFTER TRAINING
+# STEP 8: SAMPLE GENERATION AFTER TRAINING
 # ============================================================================
 
 # Generate 100 tokens from the trained model to demonstrate learned patterns

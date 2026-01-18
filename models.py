@@ -58,7 +58,7 @@ class BigramLanguageModel(nn.Module):
         return logits, loss 
     
 
-    def generate(self, idx, token_amount):
+    def generate(self, idx, token_amount, silent=True):
         """
         Generate new tokens autoregressively using the trained model.
         
@@ -70,7 +70,7 @@ class BigramLanguageModel(nn.Module):
             torch.Tensor: Generated token indices of shape (B, 1 + token_amount)
         """
 
-        for _ in tqdm(range(token_amount)):
+        for _ in tqdm(range(token_amount), disable=silent):
 
             logits, loss = self(idx)
 
@@ -373,7 +373,7 @@ class TinyGPT(nn.Module):
         return logits, loss 
     
 
-    def generate(self, idx, token_amount):
+    def generate(self, idx, token_amount, silent=True):
         """
         Generate new tokens autoregressively.
         
@@ -389,7 +389,7 @@ class TinyGPT(nn.Module):
             torch.Tensor: Generated token indices of shape (B, T + token_amount)
         """
 
-        for _ in tqdm(range(token_amount)):
+        for _ in tqdm(range(token_amount), disable=silent):
 
             idx_context = idx[:, -self.context_size:] # at most context_size from each batch
 
