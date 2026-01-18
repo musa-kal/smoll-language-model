@@ -41,9 +41,9 @@ num = int(len(data)*training_split)
 training_data = data[:num]
 testing_data = data[num:]
 
-from models import nGramLanguageModel_V2
+from models import TinyGPT
 
-m = nGramLanguageModel_V2(vocab_size, n_embed, context_size, head_num, layer_num, dropout)
+m = TinyGPT(vocab_size, n_embed, context_size, head_num, layer_num, dropout)
 m = m.to(device)
 
 input_text = ""

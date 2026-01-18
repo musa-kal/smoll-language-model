@@ -143,7 +143,7 @@ class TransformerBlock(nn.Module):
         return x
 
 
-class nGramLanguageModel_V2(nn.Module):
+class TinyGPT(nn.Module):
 
     def __init__(self, vocab_size, n_embed, context_size, head_num, layer_num, dropout):
         super().__init__()
