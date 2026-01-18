@@ -197,7 +197,7 @@ class nGramLanguageModel_V2(nn.Module):
         return idx
 
     
-    def fit(self, training_data, context_size, batch_size, epoch, lr, eval_interval=None, eval_iters=None, test_data=None):
+    def fit(self, training_data, batch_size, epoch, lr, eval_interval=None, eval_iters=None, test_data=None):
 
         optimizer = torch.optim.AdamW(self.parameters(), lr=lr)
 
@@ -210,11 +210,11 @@ class nGramLanguageModel_V2(nn.Module):
         for step in tqdm(range(epoch)):
 
             if eval_interval is not None and eval_iters is not None and step % eval_interval == 0:
-                out = estimate_loss(self, eval_data, eval_iters)
+                out = estimate_loss(self, eval_data, eval_iters, batch_size=32, context_size=self.context_size)
                 s = f"step {step+1}/{epoch}: train loss {out[0]:.4f}" + ("" if training_data is None else f" | test loss {out[1]:.4f}")
                 tqdm.write(s)
 
-            xb, yb = get_batch(training_data, batch_size, context_size)
+            xb, yb = get_batch(training_data, batch_size, self.context_size)
 
             logits, loss = self(xb, yb)
             optimizer.zero_grad(set_to_none=True)
