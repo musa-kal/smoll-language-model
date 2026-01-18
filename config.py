@@ -2,6 +2,7 @@ import torch
 
 # ======== Model Params ========
 training_text_path = r'dataset\tinyshakespeare.txt'
+model_save_path = r'models\tinygpt.pth'
 training_split = 0.85
 context_size = 256
 batch_size = 64
